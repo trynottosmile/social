@@ -1,12 +1,17 @@
 const express = require("express");
 const gravatar = require("gravatar");
-const router = express.Router();
 const bcrypt = require("bcryptjs");
-const passport = require('passport')
 const keys = require("../../config/keys");
 const jwt = require("jsonwebtoken");
+const passport = require("passport");
+
+//Load Input Validation
+const validateRegisterInput = require("../../validation/register");
+
 //Load user model
 const User = require("../models/User");
+
+const router = express.Router();
 
 // @route GET api/users/test
 // @desc Test user route
@@ -17,6 +22,13 @@ router.get("/test", (req, res) => res.json({ msg: "users works" }));
 // @desc Register a user
 // @access Public
 router.post("/register", (req, res) => {
+  const { errors, isValid } = validateRegisterInput(req.body);
+
+  //Check validation
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
+
   User.findOne({ email: req.body.email }).then(user => {
     if (user) {
       return res.status(400).json({ email: "Email alredy exist" });
@@ -47,6 +59,7 @@ router.post("/register", (req, res) => {
     }
   });
 });
+
 // @route GET api/users/login
 // @desc Login user / returning JWT Token
 // @access Public
@@ -70,16 +83,32 @@ router.post("/login", (req, res) => {
           avatar: user.avatar
         };
         //sign  Token
-        jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err,token) => {
+        jwt.sign(
+          payload,
+          keys.secretOrKey,
+          { expiresIn: 3600 },
+          (err, token) => {
             res.json({
-                success : true,
-                token : 'Bearer ' + token
-            })
-        });
+              success: true,
+              token: "Bearer " + token
+            });
+          }
+        );
       } else {
         res.status("400").json({ password: "Password incorrect" });
       }
     });
   });
 });
+// @route GET api/users/current
+// @desc Return current user
+// @access Private
+router.get(
+  "/current",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    const { id, name, email } = req.user;
+    res.json({ id, name, email });
+  }
+);
 module.exports = router;
