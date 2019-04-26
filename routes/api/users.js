@@ -8,6 +8,8 @@ const passport = require("passport");
 //Load Input Validation
 const validateRegisterInput = require("../../validation/register");
 
+const validateLoginInput = require("../../validation/login");
+
 //Load user model
 const User = require("../models/User");
 
@@ -67,10 +69,18 @@ router.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
+  const { errors, isValid } = validateLoginInput(req.body);
+
+  //Check validation
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
+
   //Find user by emai;
   User.findOne({ email }).then(user => {
     if (!user) {
-      res.status(404).json({ email: "User not found" });
+      errors.email = "User not found";
+      res.status(404).json(errors);
     }
     //Check password
     bcrypt.compare(password, user.password).then(isMatch => {
@@ -95,7 +105,8 @@ router.post("/login", (req, res) => {
           }
         );
       } else {
-        res.status("400").json({ password: "Password incorrect" });
+          errors.password = "Password incorrect"
+        res.status("400").json(errors);
       }
     });
   });
