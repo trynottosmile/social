@@ -50,7 +50,7 @@ const ProfileSchema = new Schema({
     {
       school: { type: String, required: true },
       degree: { type: String, required: true },
-      field: { type: String, required: true },
+      fieldofstudy: { type: String, required: true },
       from: { type: Date, required: true },
       to: { type: Date },
       current: { type: Boolean, dafault: false },
