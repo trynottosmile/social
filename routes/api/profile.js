@@ -6,7 +6,7 @@ const passport = require("passport");
 
 const Profile = require("../../models/Profile");
 const User = require("../../models/User");
-
+const validateProfileInput = require("../../validation/profile");
 // @route GET api/profile/test
 // @desc Test profile route
 // @access Public
@@ -20,7 +20,7 @@ router.get(
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
     const errors = {};
-    Profile.findOne({ user: req.user.id })
+    Profile.findOne({ user: req.user.id }).populate('user',['name','avatar'])
       .then(profile => {
         if (!profile) {
           errors.noprofile = "there is no profile for this user";
@@ -32,17 +32,25 @@ router.get(
   }
 );
 
-// @route GET api/profile
+// @route POST api/profile
 // @desc Create/update user profile
 // @access Private
-router.get(
+router.post(
   "/",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
+      console.log(req.body)
+    const { errors, isValid } = validateProfileInput(req.body);
+    //Validation
+    if (!isValid) {
+      return res.status(400).json(errors);
+    }
     // Get fields
     const profileFields = {};
     profileFields.user = req.user.id;
     if (req.body.handle) profileFields.handle = req.body.handle;
+    
+    if (req.body.status) profileFields.status = req.body.status;
     if (req.body.company) profileFields.company = req.body.company;
     if (req.body.website) profileFields.website = req.body.website;
     if (req.body.location) profileFields.location = req.body.location;
@@ -60,7 +68,7 @@ router.get(
     if (req.body.instagram) profileFields.social.instagram = req.body.instagram;
     if (req.body.twitter) profileFields.social.twitter = req.body.twitter;
     if (req.body.linkedin) profileFields.social.linkedin = req.body.linkedin;
-    profile.findOne({ user: req.user.id }).then(profile => {
+    Profile.findOne({ user: req.user.id }).then(profile => {
       if (profile) {
         //Update
         Profile.findOneAndUpdate(
@@ -71,15 +79,15 @@ router.get(
       } else {
         //Create
         //Check if handle exist
-        Profile.findOne({handle : profileFields.handle}).then(profile =>{
-            if(profile){
-                errors.handle = 'That handle already exists';
-                res.status(400).json(errors);
-            }
+        Profile.findOne({ handle: profileFields.handle }).then(profile => {
+          if (profile) {
+            errors.handle = "That handle already exists";
+            res.status(400).json(errors);
+          }
 
-            //Save porfile
-            new Profile(profileFields).save().then(profile => res.json(profile));
-        })
+          //Save porfile
+          new Profile(profileFields).save().then(profile => res.json(profile));
+        });
       }
     });
   }
