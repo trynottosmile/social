@@ -57,18 +57,78 @@ router.delete(
   "/:id",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    Profile.findOne({ user: req.user.id }).then(profile => {
-      Post.findById(req.params.id).then(post => {
-        if (post.user.toString() !== req.user.id) {
-          return res.status(401).json({ notauthorized: "User not authorized" });
-        }
-        // Delete
-        post
-          .remove()
-          .then(() => res.json({ success: true }))
-          .catch(err => res.status(404).json(err));
-      });
-    });
+    Profile.findOne({ user: req.user.id })
+      .then(profile => {
+        Post.findById(req.params.id).then(post => {
+          if (post.user.toString() !== req.user.id) {
+            return res
+              .status(401)
+              .json({ notauthorized: "User not authorized" });
+          }
+          // Delete
+          post.remove().then(() => res.json({ success: true }));
+        });
+      })
+      .catch(err => res.status(404).json(err));
+  }
+);
+
+// @route POST api/posts/like/:id
+// @desc Like post
+// @access Private
+router.post(
+  "/like/:id",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    Profile.findOne({ user: req.user.id })
+      .then(profile => {
+        Post.findById(req.params.id).then(post => {
+          if (
+            post.likes.filter(like => like.user.toString() === req.user.id)
+              .length > 0
+          ) {
+            return res
+              .status(400)
+              .json({ alreadyliked: "User already liked this post" });
+          }
+
+          //Add user id to likes array
+          post.likes.unshift({ user: req.user.id });
+          post.save().then(post => res.json(post));
+        });
+      })
+      .catch(err => res.status(404).json(err));
+  }
+);
+// @route POST api/posts/unlike/:id
+// @desc Unliike post
+// @access Private
+router.post(
+  "/unlike/:id",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    Profile.findOne({ user: req.user.id })
+      .then(profile => {
+        Post.findById(req.params.id).then(post => {
+          if (
+            post.likes.filter(like => like.user.toString() === req.user.id)
+              .length === 0
+          ) {
+            return res
+              .status(400)
+              .json({ alreadyliked: "You haven't yet liked this post" });
+          }
+
+          //Find remove index
+          const removerIndex = post.likes
+            .map(item => item.user.toString())
+            .indexOf(req.user.id);
+          //Removing...
+          post.likes.splice(removerIndex, 1);
+          post.save().then(post => res.json(post));
+        });
+      })
+      .catch(err => res.status(404).json(err));
   }
 );
 module.exports = router;
