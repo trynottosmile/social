@@ -1,9 +1,10 @@
 {
   "name": "social",
   "version": "1.0.0",
-  "description": "",
+  "description": "Social network",
   "main": "server.js",
   "scripts": {
+    "start": "node server",
     "server": "nodemon server.js"
   },
   "author": "",
